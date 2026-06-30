@@ -3,13 +3,10 @@ Copyright (c) 2026 Paul Lezeau. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Paul Lezeau
 -/
-import QLean.Examples.Algorithms.GroverWP.LinearAlgebra
+import QLean.Examples.Algorithms.Grover.LinearAlgebra
 
 /-!
 # Exact Four-Element Grover Search
-
-This file contains the main ingredients and exact success theorem for the two-qubit GroverWP
-instance.  The exact matrix calculation itself is imported through `GroverWP.LinearAlgebra`.
 -/
 
 namespace QLean
@@ -41,21 +38,6 @@ theorem markedBasisPredicate_unique (marked : QIndex.BitVec 2) :
   intro x
   simp [markedBasisPredicate]
 
-theorem phaseOracle_markedBasisPredicate_spec (marked : QIndex.BitVec 2) :
-    QMat.Canonical.Grover4OracleSpec
-      (QMat.phaseOracle (markedBasisPredicate marked)) marked where
-  unitary := QMat.phaseOracle_unitary (markedBasisPredicate marked)
-  maps_basis_phase := by
-    intro x z
-    by_cases hz : z = QIndex.basisOfBits x
-    · subst z
-      have hbasis :
-          QIndex.basisOfBits x = QIndex.basisOfBits marked ↔
-            x = marked :=
-        LinearAlgebra.basisOfBits_injective.eq_iff
-      simp [QMat.phaseOracle, markedBasisPredicate, hbasis]
-    · simp [QMat.phaseOracle, Matrix.diagonal, hz]
-
 /-! ## Exact Two-Qubit Proof -/
 
 /-- The current GroverWP one-round evolution agrees with the exact Grover-4 matrix result. -/
@@ -64,8 +46,6 @@ theorem programEvolve_grover4_eq_projBits (marked : QIndex.BitVec 2) :
       QMat.projBits marked := by
   rw [programEvolve, pow_one, QMat.groverIterate, LinearAlgebra.exec_evolve_mul]
   exact QMat.Canonical.grover4Final_eq_projBits marked
-    (QMat.phaseOracle (markedBasisPredicate marked))
-    (phaseOracle_markedBasisPredicate_spec marked)
 
 theorem grover4_successProbability_eq_one (marked : QIndex.BitVec 2) :
     grover4SuccessProbability marked = 1 := by

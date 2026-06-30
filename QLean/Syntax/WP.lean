@@ -20,8 +20,6 @@ There are two semantics in this file.
 
 * `Path.M` is a path-preserving symbolic semantics used to satisfy Lean's `Std.Do.WPMonad`
   interface and to drive `mvcgen`.
-
-The bridge theorem `denotePath_toAggregated_eq_denote` connects them.
 -/
 
 namespace QLean
@@ -71,7 +69,7 @@ def Forall {n : ℕ} {α : Type}
 @[simp] theorem forall_applyUnitary {n : ℕ} {α : Type}
     (U : QMat n) (μ : Exec n α) (P : α → QMat n → Prop) :
     Forall (applyUnitary U μ) P ↔
-      ∀ a ∈ (applyUnitary U μ).support, P a (evolve U (μ a)) := by
+      ∀ a ∈ (applyUnitary U μ).support, P a (QMat.evolve U (μ a)) := by
   simp [applyUnitary]
 
 @[simp] theorem forall_measBranch {n : ℕ} {α : Type}
@@ -87,9 +85,8 @@ def Forall {n : ℕ} {α : Type}
   classical
   let ρ0 := QMat.measProjector target false * ρ * QMat.measProjector target false
   let ρ1 := QMat.measProjector target true * ρ * QMat.measProjector target true
-  have hfalse_true : (label, false) ≠ (label, true) := by
-    intro h
-    exact Bool.false_ne_true (congrArg Prod.snd h)
+  have hfalse_true : (label, false) ≠ (label, true) :=
+    fun h => Bool.false_ne_true (congrArg Prod.snd h)
   unfold Forall measBranch
   change (∀ br ∈ (Finsupp.single (label, false) ρ0 + Finsupp.single (label, true) ρ1).support,
       P br ((Finsupp.single (label, false) ρ0 + Finsupp.single (label, true) ρ1) br)) ↔
@@ -121,12 +118,10 @@ def Forall {n : ℕ} {α : Type}
         have h0 : ρ0 ≠ 0 := by simpa [hfalse_true] using hsupp
         simpa [hfalse_true] using h.1 h0
       · exfalso
-        have hne0 : (c, false) ≠ (label, false) := by
-          intro heq
-          exact hc (congrArg Prod.fst heq)
-        have hne1 : (c, false) ≠ (label, true) := by
-          intro heq
-          exact Bool.false_ne_true (congrArg Prod.snd heq)
+        have hne0 : (c, false) ≠ (label, false) :=
+          fun heq => hc (congrArg Prod.fst heq)
+        have hne1 : (c, false) ≠ (label, true) :=
+          fun heq => Bool.false_ne_true (congrArg Prod.snd heq)
         have hval :
             (Finsupp.single (label, false) ρ0 + Finsupp.single (label, true) ρ1)
               (c, false) = 0 := by
@@ -138,12 +133,10 @@ def Forall {n : ℕ} {α : Type}
         have h1 : ρ1 ≠ 0 := by simpa [htrue_false] using hsupp
         simpa [htrue_false] using h.2 h1
       · exfalso
-        have hne0 : (c, true) ≠ (label, false) := by
-          intro heq
-          exact Bool.false_ne_true (congrArg Prod.snd heq).symm
-        have hne1 : (c, true) ≠ (label, true) := by
-          intro heq
-          exact hc (congrArg Prod.fst heq)
+        have hne0 : (c, true) ≠ (label, false) :=
+          fun heq => Bool.false_ne_true (congrArg Prod.snd heq).symm
+        have hne1 : (c, true) ≠ (label, true) :=
+          fun heq => hc (congrArg Prod.fst heq)
         have hval :
             (Finsupp.single (label, false) ρ0 + Finsupp.single (label, true) ρ1)
               (c, true) = 0 := by
@@ -250,33 +243,6 @@ abbrev qprogPostShape (n : ℕ) (σ : Type) : Std.Do.PostShape :=
   -- our pre and post conditions can depend on both the classical state and the
   -- quantum state.
   .arg σ (.arg (QMat n) .pure)
-
-/--
-Support-based WP for aggregated denotations.
-
-This is useful for denotational lemmas, but it is not a lawful `WPMonad`: zero branches are
-dropped by `Finsupp.support`, and equal final labels are aggregated by matrix addition.
--/
-instance instWPExecM {n : ℕ} {σ : Type} :
-    Std.Do.WP (ExecM n σ) (qprogPostShape n σ) where
-  wp {α} x :=
-    { trans := fun Q s ρ =>
-        ⟨Exec.Forall (x s ρ) fun sa ρ' => (Q.1 sa.2 sa.1 ρ').down⟩
-      conjunctiveRaw := by
-        intro Q₁ Q₂
-        apply SPred.bientails.of_eq
-        funext s ρ
-        simp only [Exec.Forall, Finsupp.mem_support_iff, ne_eq, SPred.and, Prod.forall,
-          ULift.up.injEq, eq_iff_iff]
-        constructor
-        · intro h
-          constructor
-          · intro s' a hsa
-            exact (h s' a hsa).1
-          · intro s' a hsa
-            exact (h s' a hsa).2
-        · intro h s' a hsa
-          exact ⟨h.1 s' a hsa, h.2 s' a hsa⟩ }
 
 namespace ExecM
 
@@ -400,7 +366,7 @@ noncomputable def denotePrim {n : ℕ} {σ : Type} {α : Type} :
         [{ trace := [],
            state := s,
            val := (),
-           qstate := QProg.Exec.evolve U ρ }]
+           qstate := QMat.evolve U ρ }]
   | QProg.Prim.applyClassical f =>
       fun s ρ =>
         [{ trace := [],
@@ -479,95 +445,6 @@ instance instWPMonadPathM {n : ℕ} {σ : Type} :
       subst hEq
       exact h br₀ hbr₀ br₁ hbr₁
 
-namespace Branch
-
-def toExec {n : ℕ} {σ α : Type}
-    (br : Branch n σ α) : QProg.Exec n (σ × α) :=
-  Finsupp.single (br.state, br.val) br.qstate
-
-end Branch
-
-namespace Exec
-
-def toAggregated {n : ℕ} {σ α : Type}
-    (xs : Exec n σ α) : QProg.Exec n (σ × α) :=
-  xs.foldr (fun br acc => br.toExec + acc) 0
-
-@[simp] theorem toAggregated_nil {n : ℕ} {σ α : Type} :
-    toAggregated ([] : Exec n σ α) = 0 :=
-  rfl
-
-@[simp] theorem toAggregated_cons {n : ℕ} {σ α : Type}
-    (br : Branch n σ α) (xs : Exec n σ α) :
-    toAggregated (br :: xs) = br.toExec + xs.toAggregated :=
-  rfl
-
-@[simp] theorem toAggregated_append {n : ℕ} {σ α : Type}
-    (xs ys : Exec n σ α) :
-    toAggregated (xs ++ ys) = xs.toAggregated + ys.toAggregated := by
-  induction xs with
-  | nil =>
-      simp
-  | cons br xs ih =>
-      simp [ih, add_assoc]
-
-/-- Aggregation forgets symbolic traces. -/
-@[simp] theorem toAggregated_map_trace {n : ℕ} {σ α : Type}
-    (xs : Exec n σ α) (pref : Trace n) :
-    toAggregated
-        (xs.map fun br =>
-          { trace := pref ++ br.trace
-            state := br.state
-            val := br.val
-            qstate := br.qstate }) =
-      xs.toAggregated := by
-  induction xs with
-  | nil =>
-      simp
-  | cons br xs ih =>
-      simp [ih, Branch.toExec]
-
-theorem toAggregated_pathBind {n : ℕ} {σ α β : Type}
-    (xs : Exec n σ α)
-    (Kp : α → σ → QMat n → Exec n σ β)
-    (Ke : α → σ → QMat n → QProg.Exec n (σ × β))
-    (hK : ∀ a s ρ, (Kp a s ρ).toAggregated = Ke a s ρ)
-    (hzero : ∀ a s, Ke a s 0 = 0)
-    (hadd : ∀ a s ρ₁ ρ₂, Ke a s (ρ₁ + ρ₂) = Ke a s ρ₁ + Ke a s ρ₂) :
-    toAggregated
-        (List.flatMap
-          (fun br =>
-            (Kp br.val br.state br.qstate).map fun br' =>
-              { trace := br.trace ++ br'.trace
-                state := br'.state
-                val := br'.val
-                qstate := br'.qstate })
-          xs) =
-      QProg.Exec.bind xs.toAggregated fun sa ρ => Ke sa.2 sa.1 ρ := by
-  classical
-  induction xs with
-  | nil =>
-      simp [QProg.Exec.bind]
-  | cons br xs ih =>
-      simp only [List.flatMap_cons, toAggregated_append, toAggregated_cons]
-      rw [toAggregated_map_trace, hK, ih]
-      rw [QProg.Exec.bind_add]
-      · have hsingle :
-            QProg.Exec.bind br.toExec (fun sa ρ => Ke sa.2 sa.1 ρ) =
-              Ke br.val br.state br.qstate := by
-          simpa [Branch.toExec, QProg.Exec.pureBranch] using
-            (QProg.Exec.bind_pureBranch_of_zero
-              (K := fun sa ρ => Ke sa.2 sa.1 ρ)
-              (fun sa => hzero sa.2 sa.1)
-              (a := (br.state, br.val)) (ρ := br.qstate))
-        rw [hsingle]
-      · intro sa
-        exact hzero sa.2 sa.1
-      · intro sa ρ₁ ρ₂
-        exact hadd sa.2 sa.1 ρ₁ ρ₂
-
-end Exec
-
 end Path
 
 instance instWPQProg {n : ℕ} {σ : Type} :
@@ -596,36 +473,32 @@ instance instWPMonadQProg {n : ℕ} {σ : Type} :
     (U : QMat n) (hU : U.Unitary) :
     denote (applyUnitary (σ := σ) U hU) =
       denotePrim (QProg.Prim.applyUnitary (σ := σ) (n := n) U hU) := by
-  simp only [denote, applyUnitary, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
-    Cslib.FreeM.liftM_pure]
-  exact ExecM.bind_pure
-    (denotePrim (QProg.Prim.applyUnitary (σ := σ) (n := n) U hU))
+  simpa only [denote, applyUnitary, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
+    Cslib.FreeM.liftM_pure] using
+    ExecM.bind_pure (denotePrim (QProg.Prim.applyUnitary (σ := σ) (n := n) U hU))
 
 @[simp] theorem denote_applyClassical {σ : Type} {n : ℕ}
     (f : σ → σ) :
     denote (applyClassical (σ := σ) (n := n) f) =
       denotePrim (QProg.Prim.applyClassical (σ := σ) (n := n) f) := by
-  simp only [denote, applyClassical, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
-    Cslib.FreeM.liftM_pure]
-  exact ExecM.bind_pure
-    (denotePrim (QProg.Prim.applyClassical (σ := σ) (n := n) f))
+  simpa only [denote, applyClassical, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
+    Cslib.FreeM.liftM_pure] using
+    ExecM.bind_pure (denotePrim (QProg.Prim.applyClassical (σ := σ) (n := n) f))
 
 @[simp] theorem denote_readClassical {σ : Type} {n : ℕ} :
     denote (readClassical (σ := σ) (n := n)) =
       denotePrim (QProg.Prim.readClassical (σ := σ) (n := n)) := by
-  simp only [denote, readClassical, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
-    Cslib.FreeM.liftM_pure]
-  exact ExecM.bind_pure
-    (denotePrim (QProg.Prim.readClassical (σ := σ) (n := n)))
+  simpa only [denote, readClassical, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
+    Cslib.FreeM.liftM_pure] using
+    ExecM.bind_pure (denotePrim (QProg.Prim.readClassical (σ := σ) (n := n)))
 
 @[simp] theorem denote_meas {σ : Type} {n : ℕ}
     (target : Fin n) :
     denote (meas (σ := σ) target) =
       denotePrim (QProg.Prim.meas (σ := σ) (n := n) target) := by
-  simp only [denote, meas, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
-    Cslib.FreeM.liftM_pure]
-  exact ExecM.bind_pure
-    (denotePrim (QProg.Prim.meas (σ := σ) (n := n) target))
+  simpa only [denote, meas, Cslib.FreeM.lift_def, Cslib.FreeM.liftM_liftBind,
+    Cslib.FreeM.liftM_pure] using
+    ExecM.bind_pure (denotePrim (QProg.Prim.meas (σ := σ) (n := n) target))
 
 /- Primitive `mvcgen` specifications -/
 
@@ -633,7 +506,7 @@ instance instWPMonadQProg {n : ℕ} {σ : Type} :
     (U : QMat n) (hU : U.Unitary)
     (Q : Std.Do.PostCond Unit (qprogPostShape n σ)) :
     wp⟦QProg.applyUnitary (σ := σ) U hU⟧ Q =
-      fun s ρ => Q.1 () s (Exec.evolve U ρ) := by
+      fun s ρ => Q.1 () s (QMat.evolve U ρ) := by
   funext s ρ
   simp [Std.Do.WP.wp, Std.Do.PredTrans.apply, Path.denote, applyUnitary,
     Path.denotePrim, Path.Forall]
@@ -683,7 +556,7 @@ instance instWPMonadQProg {n : ℕ} {σ : Type} :
     {n : ℕ} {σ : Type}
     (U : QMat n) (hU : U.Unitary)
     (Q : Std.Do.PostCond Unit (qprogPostShape n σ)) :
-    ⦃ fun s ρ => Q.1 () s (Exec.evolve U ρ) ⦄
+    ⦃ fun s ρ => Q.1 () s (QMat.evolve U ρ) ⦄
       QProg.applyUnitary (σ := σ) U hU
     ⦃ Q ⦄ := by
   simp [Std.Do.Triple]
@@ -720,36 +593,12 @@ instance instWPMonadQProg {n : ℕ} {σ : Type} :
     ⦃ Q ⦄ := by
   simp [Std.Do.Triple]
 
-/- Path aggregation bridge -/
-
-namespace Path
-
-/-- Aggregating the path semantics of one primitive recovers the denotational primitive. -/
-@[simp] theorem denotePrim_toAggregated {n : ℕ} {σ α : Type}
-    (op : QProg.Prim σ n α) (s : σ) (ρ : QMat n) :
-    (denotePrim op s ρ).toAggregated = QProg.denotePrim op s ρ := by
-  cases op with
-  | applyUnitary U hU =>
-      simp [denotePrim, QProg.denotePrim, Exec.toAggregated, Branch.toExec,
-        QProg.Exec.pureBranch]
-  | applyClassical f =>
-      simp [denotePrim, QProg.denotePrim, Exec.toAggregated, Branch.toExec,
-        QProg.Exec.pureBranch]
-  | readClassical =>
-      simp [denotePrim, QProg.denotePrim, Exec.toAggregated, Branch.toExec,
-        QProg.Exec.pureBranch]
-  | meas target =>
-      simp [denotePrim, QProg.denotePrim, Exec.toAggregated, Branch.toExec,
-        QProg.Exec.measBranch]
-
-end Path
-
 @[simp] theorem denotePrim_zero {n : ℕ} {σ α : Type}
     (op : QProg.Prim σ n α) (s : σ) :
     QProg.denotePrim op s 0 = 0 := by
   cases op with
   | applyUnitary U hU =>
-      simp [QProg.denotePrim, Exec.pureBranch, Exec.evolve, QMat.evolve]
+      simp [QProg.denotePrim, Exec.pureBranch, QMat.evolve]
   | applyClassical f =>
       simp [QProg.denotePrim, Exec.pureBranch]
   | readClassical =>
@@ -763,7 +612,7 @@ end Path
       QProg.denotePrim op s ρ₁ + QProg.denotePrim op s ρ₂ := by
   cases op with
   | applyUnitary U hU =>
-      simp [QProg.denotePrim, Exec.pureBranch, Exec.evolve, QMat.evolve, mul_add, add_mul]
+      simp [QProg.denotePrim, Exec.pureBranch, QMat.evolve, mul_add, add_mul]
   | applyClassical f =>
       simp [QProg.denotePrim]
   | readClassical =>
@@ -798,8 +647,7 @@ end Path
           ExecM.bind (QProg.denotePrim op) (fun a => QProg.denote (cont a)) s ρ₁ +
           ExecM.bind (QProg.denotePrim op) (fun a => QProg.denote (cont a)) s ρ₂
       simp only [ExecM.bind]
-      rw [denotePrim_add]
-      rw [Exec.bind_add]
+      rw [denotePrim_add, Exec.bind_add]
       · intro sa
         exact denote_zero (cont sa.2) sa.1
       · intro sa ρ₁ ρ₂
@@ -849,12 +697,12 @@ end Path
     (U : QMat n) (hU : U.Unitary) (cont : Unit → QProg σ n α)
     (s : σ) (ρ : QMat n) :
     QProg.denote (QProg.applyUnitary (σ := σ) U hU >>= cont) s ρ =
-      QProg.denote (cont ()) s (Exec.evolve U ρ) := by
+      QProg.denote (cont ()) s (QMat.evolve U ρ) := by
   rw [denote_bind]
   change
     Exec.bind (QProg.denote (QProg.applyUnitary (σ := σ) U hU) s ρ)
         (fun sa ρ' => QProg.denote (cont sa.2) sa.1 ρ') =
-      QProg.denote (cont ()) s (Exec.evolve U ρ)
+      QProg.denote (cont ()) s (QMat.evolve U ρ)
   simp only [denote_applyUnitary, denotePrim, Exec.pureBranch]
   unfold Exec.bind
   rw [Finsupp.sum_single_index]
@@ -891,86 +739,6 @@ end Path
     exact denote_zero (cont a.2) a.1
   · intro a ha ρ₁ ρ₂
     exact denote_add (cont a.2) a.1 ρ₁ ρ₂
-
-/-- Aggregating path-preserving program semantics recovers the denotational semantics. -/
-theorem denotePath_toAggregated_eq_denote
-    {n : ℕ} {σ α : Type}
-    (prog : QProg σ n α) (s : σ) (ρ : QMat n) :
-    (Path.denote prog s ρ).toAggregated = QProg.denote prog s ρ := by
-  induction prog generalizing s ρ with
-  | pure a =>
-      change Path.Exec.toAggregated
-          ([{ trace := [], state := s, val := a, qstate := ρ }] : Path.Exec n σ α) =
-        Exec.pureBranch (s, a) ρ
-      simp [Path.Exec.toAggregated, Path.Branch.toExec, Exec.pureBranch]
-  | liftBind op cont ih =>
-      simp only [Path.denote, QProg.denote, Cslib.FreeM.liftM_liftBind]
-      change
-        (Path.bind (Path.denotePrim op) (fun a => Path.denote (cont a)) s ρ).toAggregated =
-          ExecM.bind (QProg.denotePrim op) (fun a => QProg.denote (cont a)) s ρ
-      simp only [Path.bind, ExecM.bind]
-      rw [Path.Exec.toAggregated_pathBind
-        (Kp := fun a s ρ => Path.denote (cont a) s ρ)
-        (Ke := fun a s ρ => QProg.denote (cont a) s ρ)]
-      · simp
-      · intro a s ρ
-        exact ih a s ρ
-      · intro a s
-        exact denote_zero (cont a) s
-      · intro a s ρ₁ ρ₂
-        exact denote_add (cont a) s ρ₁ ρ₂
-
-
-namespace Path
-
-/-- A postcondition accepts zero-probability aggregated branches. -/
-def ZeroClosed {n : ℕ} {σ α : Type}
-    (P : α → σ → QMat n → Prop) : Prop :=
-  ∀ a s, P a s 0
-
-/-- A postcondition is closed under adding subnormalised matrices for the same final label. -/
-def AddClosed {n : ℕ} {σ α : Type}
-    (P : α → σ → QMat n → Prop) : Prop :=
-  ∀ a s ρ₁ ρ₂,
-    P a s ρ₁ → P a s ρ₂ → P a s (ρ₁ + ρ₂)
-
-theorem forall_toAggregated
-    {n : ℕ} {σ α : Type}
-    {P : α → σ → QMat n → Prop}
-    (hzero : ZeroClosed P)
-    (hadd : AddClosed P)
-    {xs : Path.Exec n σ α}
-    (h : Path.Forall xs P) :
-    QProg.Exec.Forall xs.toAggregated
-      (fun sa ρ => P sa.2 sa.1 ρ) := by
-  classical
-  induction xs with
-  | nil =>
-      simp [Path.Exec.toAggregated, QProg.Exec.Forall]
-  | cons br xs ih =>
-      rw [Path.forall_cons] at h
-      have hbr : P br.val br.state br.qstate := h.1
-      have hxs : Path.Forall xs P := h.2
-      have ihxs := ih hxs
-      intro sa hsa
-      let acc := Path.Exec.toAggregated xs
-      have hhead : P sa.2 sa.1 (br.toExec sa) := by
-        by_cases hsame : sa = (br.state, br.val)
-        · subst sa
-          simpa [Path.Branch.toExec]
-        · have hzeroHead : br.toExec sa = 0 := by
-            simp [Path.Branch.toExec, hsame]
-          simpa [hzeroHead] using hzero sa.2 sa.1
-      have htail : P sa.2 sa.1 (acc sa) := by
-        by_cases hacc : acc sa = 0
-        · simpa [hacc] using hzero sa.2 sa.1
-        · exact ihxs sa (by
-            rw [Finsupp.mem_support_iff]
-            exact hacc)
-      simpa [Path.Exec.toAggregated, acc, Pi.add_apply] using
-        hadd sa.2 sa.1 (br.toExec sa) (acc sa) hhead htail
-
-end Path
 
 /- Expectation-style quantum Hoare logic -/
 
@@ -1021,7 +789,7 @@ notation "⦃ᵩ " P " ⦄ " prog " ⦃ᵩ " Q " ⦄" =>
     (U : QMat n) (hU : U.Unitary)
     (post : Unit → σ → QMat n) (s : σ) (ρ : QMat n) :
     wpTotal (QProg.applyUnitary (σ := σ) U hU) post s ρ =
-      QMat.expect (post () s) (Exec.evolve U ρ) := by
+      QMat.expect (post () s) (QMat.evolve U ρ) := by
   simp [wpTotal, Exec.expectPost, denotePrim, Exec.pureBranch, QMat.expect]
 
 @[simp] theorem wpTotal_applyClassical {n : ℕ} {σ : Type}
@@ -1067,7 +835,7 @@ notation "⦃ᵩ " P " ⦄ " prog " ⦃ᵩ " Q " ⦄" =>
     (U : QMat n) (hU : U.Unitary) (cont : Unit → QProg σ n α)
     (post : α → σ → QMat n) (s : σ) (ρ : QMat n) :
     wpTotal (QProg.applyUnitary (σ := σ) U hU >>= cont) post s ρ =
-      wpTotal (cont ()) post s (Exec.evolve U ρ) := by
+      wpTotal (cont ()) post s (QMat.evolve U ρ) := by
   unfold wpTotal
   rw [denote_applyUnitary_bind]
 
@@ -1097,7 +865,7 @@ theorem physicalTotal_applyUnitary {n : ℕ} {σ : Type}
     (U : QMat n) (hU : U.Unitary)
     (h : ∀ s ρ, Substate ρ →
       QMat.expect (pre s) ρ ≤
-      QMat.expect (post () s) (Exec.evolve U ρ)) :
+      QMat.expect (post () s) (QMat.evolve U ρ)) :
     PhysicalTotal pre (QProg.applyUnitary (σ := σ) U hU) post := by
   simpa [PhysicalTotal] using h
 

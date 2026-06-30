@@ -127,14 +127,12 @@ private theorem liftFirstRegisterMatrix_mul_star_apply_sum (t m : ℕ) (U : QMat
     · have hinn' : QIndex.secondRegisterBasis t m inn = QIndex.secondRegisterBasis t m x :=
         hinn.symm
       rw [if_pos hout', if_pos hinn', if_pos hout, if_pos hinn]
-    · have hinn' : QIndex.secondRegisterBasis t m inn ≠ QIndex.secondRegisterBasis t m x := by
-        intro h
-        exact hinn h.symm
+    · have hinn' : QIndex.secondRegisterBasis t m inn ≠ QIndex.secondRegisterBasis t m x :=
+        fun h => hinn h.symm
       rw [if_pos hout', if_neg hinn', if_pos hout, if_neg hinn]
       simp
-  · have hout' : QIndex.secondRegisterBasis t m out ≠ QIndex.secondRegisterBasis t m x := by
-      intro h
-      exact hout h.symm
+  · have hout' : QIndex.secondRegisterBasis t m out ≠ QIndex.secondRegisterBasis t m x :=
+      fun h => hout h.symm
     rw [if_neg hout', if_neg hout]
     simp
 
@@ -208,13 +206,9 @@ private theorem liftFirstRegisterMatrix_one (t m : ℕ) :
   · by_cases hfirst : QIndex.firstRegisterBasis t m out = QIndex.firstRegisterBasis t m inn
     · have hidx : out = inn := register_eq_of_first_second_eq hfirst hsecond
       simp [liftFirstRegisterMatrix, Matrix.one_apply, hidx]
-    · have hidx : out ≠ inn := by
-        intro hidx
-        exact hfirst (by simp [hidx])
+    · have hidx : out ≠ inn := fun hidx => hfirst (by simp [hidx])
       simp [liftFirstRegisterMatrix, hsecond, hfirst, Matrix.one_apply, hidx]
-  · have hidx : out ≠ inn := by
-      intro hidx
-      exact hsecond (by simp [hidx])
+  · have hidx : out ≠ inn := fun hidx => hsecond (by simp [hidx])
     simp [liftFirstRegisterMatrix, hsecond, Matrix.one_apply, hidx]
 
 theorem liftFirstRegisterMatrix_unitary (t m : ℕ) (U : QMat t) (hU : U.Unitary) :

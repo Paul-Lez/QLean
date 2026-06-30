@@ -8,15 +8,7 @@ import QLean.Syntax.WP
 import QLean.Examples.AuxiliaryResults.Bell
 
 /-!
-# Bell Measurement Demos for the WP Layer
-
-This file gives small fixed-register examples for the current `QProg σ n` weakest-precondition
-infrastructure.  The examples prepare a Bell pair from `|00⟩` and then measure either one
-qubit or both qubits.
-
-The key non-local point is the single-measurement theorem: after measuring qubit `0`, the
-returned classical bit determines the full two-qubit post-measurement branch, including the
-unmeasured qubit.
+# Bell Measurement
 -/
 
 namespace QLean
@@ -71,14 +63,11 @@ the returned bit determines whether the full post-measurement state is `|00⟩�
 -/
 theorem bellMeasureLeft_remote_collapse {σ : Type} (s : σ) :
     QHoare.wpTotal (bellMeasureLeft (σ := σ)) (sameBitPost (σ := σ)) s
-      QMat.Bell.proj00 = 1
-    := by
+      QMat.Bell.proj00 = 1 := by
   unfold bellMeasureLeft
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_meas]
-  simpa [sameBitPost, QProg.Exec.evolve, QMat.measProjector, QMat.Bell.prepared,
-    QMat.Bell.measured] using
+  rw [QHoare.wpTotal_applyUnitary_bind, QHoare.wpTotal_applyUnitary_bind]
+  simpa [QHoare.wpTotal_meas, sameBitPost, QMat.evolve, QMat.measProjector,
+    QMat.Bell.prepared, QMat.measured] using
     QMat.Bell.remote_collapse
 
 /--
@@ -88,51 +77,38 @@ Under that side condition, the `|00⟩⟨00|`
 pre-expectation is bounded by the branch-dependent remote-collapse post-expectation.
 -/
 theorem bellMeasureLeft_remote_collapse_total {σ : Type} (s : σ) (ρ : QMat 2)
-    (hρ : ρ.PosSemidef) :
-    QMat.expect QMat.Bell.proj00 ρ ≤
-      QHoare.wpTotal (bellMeasureLeft (σ := σ)) (sameBitPost (σ := σ)) s ρ
-    := by
+    (hρ : ρ.PosSemidef) : QMat.expect QMat.Bell.proj00 ρ ≤
+      QHoare.wpTotal (bellMeasureLeft (σ := σ)) (sameBitPost (σ := σ)) s ρ := by
   unfold bellMeasureLeft
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_meas]
-  simpa [sameBitPost, QProg.Exec.evolve, QMat.measProjector, QMat.Bell.prepared,
-    QMat.Bell.measured] using
+  rw [QHoare.wpTotal_applyUnitary_bind, QHoare.wpTotal_applyUnitary_bind]
+  simpa [QHoare.wpTotal_meas, sameBitPost, QMat.evolve, QMat.measProjector,
+    QMat.Bell.prepared, QMat.measured] using
     QMat.Bell.remote_collapse_total ρ hρ
 
 /-- Physical Hoare-total form over subnormalised input states. -/
 theorem bellMeasureLeft_remote_collapse_physicalTotal {σ : Type} :
     QHoare.PhysicalTotal (fun _ : σ => QMat.Bell.proj00)
-      (bellMeasureLeft (σ := σ)) (sameBitPost (σ := σ)) := by
-  intro s ρ hρ
-  exact bellMeasureLeft_remote_collapse_total s ρ hρ.1
+      (bellMeasureLeft (σ := σ)) (sameBitPost (σ := σ)) :=
+  fun s ρ hρ => bellMeasureLeft_remote_collapse_total s ρ hρ.1
 
 /-- The left-qubit measurement of the Bell pair returns `false` with probability `1 / 2`. -/
 theorem bellMeasureLeft_false_prob {σ : Type} (s : σ) :
     QHoare.wpTotal (bellMeasureLeft (σ := σ)) (returnedFalse (σ := σ)) s
-      QMat.Bell.proj00 =
-      (1 / 2 : ℝ)
-    := by
+      QMat.Bell.proj00 = (1 / 2 : ℝ) := by
   unfold bellMeasureLeft
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_meas]
-  simpa [returnedFalse, QProg.Exec.evolve, QMat.measProjector, QMat.Bell.prepared,
-    QMat.Bell.measured] using
+  rw [QHoare.wpTotal_applyUnitary_bind, QHoare.wpTotal_applyUnitary_bind]
+  simpa [QHoare.wpTotal_meas, returnedFalse, QMat.evolve, QMat.measProjector,
+    QMat.Bell.prepared, QMat.measured] using
     QMat.Bell.left_false_probability
 
 /-- The left-qubit measurement of the Bell pair returns `true` with probability `1 / 2`. -/
 theorem bellMeasureLeft_true_prob {σ : Type} (s : σ) :
     QHoare.wpTotal (bellMeasureLeft (σ := σ)) (returnedTrue (σ := σ)) s
-      QMat.Bell.proj00 =
-      (1 / 2 : ℝ)
-    := by
+      QMat.Bell.proj00 = (1 / 2 : ℝ) := by
   unfold bellMeasureLeft
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_meas]
-  simpa [returnedTrue, QProg.Exec.evolve, QMat.measProjector, QMat.Bell.prepared,
-    QMat.Bell.measured] using
+  rw [QHoare.wpTotal_applyUnitary_bind, QHoare.wpTotal_applyUnitary_bind]
+  simpa [QHoare.wpTotal_meas, returnedTrue, QMat.evolve, QMat.measProjector,
+    QMat.Bell.prepared, QMat.measured] using
     QMat.Bell.left_true_probability
 
 /-! ## Demo 2: prepare a Bell pair, then measure both qubits -/
@@ -154,15 +130,12 @@ def correlatedPost {σ : Type} : Bool × Bool → σ → QMat 2
 /-- Measuring both qubits of the Bell pair always returns equal bits. -/
 theorem bellMeasureBoth_correlated {σ : Type} (s : σ) :
     QHoare.wpTotal (bellMeasureBoth (σ := σ)) (correlatedPost (σ := σ)) s
-      QMat.Bell.proj00 = 1
-    := by
+      QMat.Bell.proj00 = 1 := by
   unfold bellMeasureBoth
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_applyUnitary_bind]
-  rw [QHoare.wpTotal_meas_bind]
+  rw [QHoare.wpTotal_applyUnitary_bind, QHoare.wpTotal_applyUnitary_bind]
   simp only [QHoare.wpTotal_meas_bind, QHoare.wpTotal_pure]
-  simpa [correlatedPost, QProg.Exec.evolve, QMat.measProjector, QMat.Bell.prepared,
-    QMat.Bell.measured] using
+  simpa [correlatedPost, QMat.evolve, QMat.measProjector, QMat.Bell.prepared,
+    QMat.measured] using
     QMat.Bell.both_correlated
 
 end Bell

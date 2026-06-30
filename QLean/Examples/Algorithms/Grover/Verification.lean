@@ -8,14 +8,7 @@ import QLean.Gates.FullRegister.Hadamard
 import QLean.Gates.FullRegister.Phase
 
 /-!
-# Grover Search WP Verification Prerequisites
-
-This file contains the syntax and matrix-evolution prerequisites shared by the GroverWP
-examples.
-
-The headline Grover-4 and general Grover theorems keep their own algorithm-specific
-success statements in their respective files.  The shared material here is just the program
-syntax and deterministic matrix summaries used by those theorems.
+# Grover Search Verification Prerequisites
 -/
 
 namespace QLean
@@ -49,20 +42,19 @@ def iterations {σ : Type} {n : ℕ} (marked : Marked n) (k : ℕ) : QProg σ n 
   QProg.applyUnitary ((QMat.groverIterate marked) ^ k) (QMat.groverIterate_pow_unitary marked k)
 
 /-- Grover search up to the final readout: prepare uniform state, then run `k` iterations. -/
-def program {σ : Type} {n : ℕ} (marked : Marked n) (k : ℕ) : QProg σ n Unit :=
-  do
-    prepareUniform (σ := σ) n
-    iterations (σ := σ) marked k
+def program {σ : Type} {n : ℕ} (marked : Marked n) (k : ℕ) : QProg σ n Unit := do
+  prepareUniform (σ := σ) n
+  iterations (σ := σ) marked k
 
 /-! ## Matrix Summaries -/
 
 /-- Matrix evolution induced by one syntactic Grover round. -/
 def roundEvolve {n : ℕ} (marked : Marked n) (ρ : QMat n) : QMat n :=
-  Exec.evolve (QMat.diffusion n) (Exec.evolve (QMat.phaseOracle marked) ρ)
+  QMat.evolve (QMat.diffusion n) (QMat.evolve (QMat.phaseOracle marked) ρ)
 
 /-- Matrix evolution induced by the compiled `k`-round Grover program after preparation. -/
 def programEvolve {n : ℕ} (marked : Marked n) (k : ℕ) (ρ : QMat n) : QMat n :=
-  Exec.evolve ((QMat.groverIterate marked) ^ k) (Exec.evolve (QMat.hadamardLayer n) ρ)
+  QMat.evolve ((QMat.groverIterate marked) ^ k) (QMat.evolve (QMat.hadamardLayer n) ρ)
 
 end GroverWP
 end QProg

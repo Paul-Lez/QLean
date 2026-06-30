@@ -77,9 +77,7 @@ private theorem basisMapMatrix_mul_star_self_of_bijective {n : ℕ} {f : Q[n] �
         (if i = f k then (1 : ℂ) else 0) * (if j = f k then (1 : ℂ) else 0) = 0 := by
       intro k
       by_cases hik : i = f k
-      · have hjk : j ≠ f k := by
-          intro hjk
-          exact hij (hik.trans hjk.symm)
+      · have hjk : j ≠ f k := fun hjk => hij (hik.trans hjk.symm)
         simp [hik, hjk]
       · simp [hik]
     calc
@@ -162,9 +160,7 @@ private theorem swapBits_involutive {n : ℕ} (q r : Fin n) :
     by_cases hqr : q = r <;> simp [swapBits_apply, hqr]
   · by_cases hir : i = r
     · subst i
-      have hqr : q ≠ r := by
-        intro hqr
-        exact hiq hqr.symm
+      have hqr : q ≠ r := fun hqr => hiq hqr.symm
       simp [swapBits_apply, hqr]
     · simp [swapBits_apply, hiq, hir]
 
@@ -206,7 +202,11 @@ def cnotMatrix {n : ℕ} (control target : Fin n) : QMat n :=
     if x control = (1 : Fin 2) then flipBit x target else x
 
 
-/-- Permutation matrix for a Toffoli / CCNOT gate. -/
+/--
+Permutation matrix for a Toffoli / CCNOT gate. If the two controls coincide, this intentionally
+degenerates to the corresponding CNOT; the unitary proof only requires each control to differ
+from the target.
+-/
 def toffoliMatrix {n : ℕ} (control₁ control₂ target : Fin n) : QMat n :=
   basisMapMatrix fun x =>
     if x control₁ = (1 : Fin 2) ∧ x control₂ = (1 : Fin 2) then

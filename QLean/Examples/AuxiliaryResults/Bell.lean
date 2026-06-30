@@ -9,9 +9,6 @@ import QLean.Gates.SingleQubit
 
 /-!
 # Bell-State Linear Algebra Obligations
-
-This file contains the Bell-demo matrix/probability facts used by the algorithm files.
-It deliberately stays below the `QProg` syntax/WP layer.
 -/
 
 namespace QLean
@@ -209,13 +206,9 @@ theorem measProjector_mul_basisOuter_mul {n : ℕ} (target : Fin n) (outcome : B
 
 namespace Bell
 
-/-- Interpret a measurement bit as the corresponding computational-basis index. -/
-def boolBit : Bool → Fin 2 :=
-  QIndex.boolBit
-
 /-- The two-qubit computational-basis bitstring `|b0 b1⟩`. -/
 def basis2 (b0 b1 : Bool) : Q[2] :=
-  fun q => if q = (0 : Fin 2) then boolBit b0 else boolBit b1
+  fun q => if q = (0 : Fin 2) then QIndex.boolBit b0 else QIndex.boolBit b1
 
 def ket00 : Q[2] :=
   basis2 false false
@@ -235,21 +228,21 @@ private theorem qindex_two_cases (x : Q[2]) :
     rcases fin_two_cases (x 1) with h1 | h1
   · left
     funext i
-    fin_cases i <;> simp [ket00, basis2, boolBit, QIndex.boolBit, h0, h1]
+    fin_cases i <;> simp [ket00, basis2, QIndex.boolBit, h0, h1]
   · right
     left
     funext i
-    fin_cases i <;> simp [basis2, boolBit, QIndex.boolBit, h0, h1]
+    fin_cases i <;> simp [basis2, QIndex.boolBit, h0, h1]
   · right
     right
     left
     funext i
-    fin_cases i <;> simp [ket10, basis2, boolBit, QIndex.boolBit, h0, h1]
+    fin_cases i <;> simp [ket10, basis2, QIndex.boolBit, h0, h1]
   · right
     right
     right
     funext i
-    fin_cases i <;> simp [ket11, basis2, boolBit, QIndex.boolBit, h0, h1]
+    fin_cases i <;> simp [ket11, basis2, QIndex.boolBit, h0, h1]
 
 private theorem qindex_two_univ :
     (Finset.univ : Finset Q[2]) =
@@ -292,10 +285,6 @@ private theorem complex_inv_sqrt_two_mul :
     norm_num [← pow_two, real_sqrt_two_sq]
   rw [← mul_inv_rev, hmul]
 
-/-- The rank-one computational-basis projector `|x⟩⟨x|`. -/
-def projBasis (x : Q[2]) : QMat 2 :=
-  Matrix.of fun y z => if y = x ∧ z = x then 1 else 0
-
 /-- The initial density matrix `|00⟩⟨00|`. -/
 abbrev proj00 : QMat 2 :=
   projBasis (basis2 false false)
@@ -319,15 +308,11 @@ def CNOT_0_1 : QMat 2 :=
 def prepared (H CNOT ρ : QMat 2) : QMat 2 :=
   QMat.evolve CNOT (QMat.evolve H ρ)
 
-/-- Post-measurement branch for measuring one qubit. -/
-def measured (target : Fin 2) (outcome : Bool) (ρ : QMat 2) : QMat 2 :=
-  QMat.measProjector target outcome * ρ * QMat.measProjector target outcome
-
 theorem expect_measured (A : QMat 2) (target : Fin 2) (outcome : Bool) (ρ : QMat 2) :
     QMat.expect A (measured target outcome ρ) =
       QMat.expect (QMat.measProjector target outcome * A * QMat.measProjector target outcome)
         ρ := by
-  rw [measured, QMat.expect_measProjector]
+  rw [QMat.measured, QMat.expect_measProjector]
 
 @[simp] theorem projBasis_apply (x y z : Q[2]) :
     projBasis x y z = if y = x ∧ z = x then 1 else 0 :=
@@ -376,21 +361,21 @@ theorem expect_projBasis_nonneg_of_posSemidef (x : Q[2]) {ρ : QMat 2}
 
 @[simp] theorem bitAt_basis2_zero (b0 b1 : Bool) :
     QMat.bitAt (0 : Fin 2) (basis2 b0 b1) = b0 := by
-  cases b0 <;> cases b1 <;> simp [basis2, boolBit, QIndex.boolBit, QMat.bitAt]
+  cases b0 <;> cases b1 <;> simp [basis2, QIndex.boolBit, QMat.bitAt]
 
 @[simp] theorem bitAt_basis2_one (b0 b1 : Bool) :
     QMat.bitAt (1 : Fin 2) (basis2 b0 b1) = b1 := by
-  cases b0 <;> cases b1 <;> simp [basis2, boolBit, QIndex.boolBit, QMat.bitAt]
+  cases b0 <;> cases b1 <;> simp [basis2, QIndex.boolBit, QMat.bitAt]
 
 @[simp] theorem measured_add (target : Fin 2) (outcome : Bool) (ρ σ : QMat 2) :
     measured target outcome (ρ + σ) =
       measured target outcome ρ + measured target outcome σ := by
-  unfold measured
+  unfold QMat.measured
   simp [Matrix.mul_add, Matrix.add_mul]
 
 @[simp] theorem measured_smul (c : ℂ) (target : Fin 2) (outcome : Bool) (ρ : QMat 2) :
     measured target outcome (c • ρ) = c • measured target outcome ρ := by
-  unfold measured
+  unfold QMat.measured
   simp
 
 @[simp] theorem measured_real_smul (r : ℝ) (target : Fin 2) (outcome : Bool) (ρ : QMat 2) :
@@ -403,12 +388,12 @@ theorem expect_projBasis_nonneg_of_posSemidef (x : Q[2]) {ρ : QMat 2}
         QMat.basisOuter x y
       else
         0 := by
-  rw [measured, QMat.measProjector_mul_basisOuter_mul]
+  rw [QMat.measured, QMat.measProjector_mul_basisOuter_mul]
 
 @[simp] theorem measured_projBasis (target : Fin 2) (outcome : Bool) (x : Q[2]) :
     measured target outcome (projBasis x) =
       if QMat.bitAt target x = outcome then projBasis x else 0 := by
-  rw [measured, projBasis_eq_basisOuter, QMat.measProjector_mul_basisOuter_mul]
+  rw [QMat.measured, projBasis_eq_basisOuter, QMat.measProjector_mul_basisOuter_mul]
   by_cases h : QMat.bitAt target x = outcome <;> simp [h]
 
 @[simp] theorem measured_proj00_one_false :
@@ -437,7 +422,7 @@ private def bellAmp : Q[2] → ℂ :=
 private theorem ket00_ne_ket11 : ket00 ≠ ket11 := by
   intro h
   have h0 := congrFun h (0 : Fin 2)
-  norm_num [ket00, ket11, basis2, boolBit, QIndex.boolBit] at h0
+  norm_num [ket00, ket11, basis2, QIndex.boolBit] at h0
 
 private theorem proj00_eq_pure_basisAmp_ket00 :
     proj00 = QMat.pureDensity (QMat.basisAmp ket00) := by
@@ -453,7 +438,7 @@ private theorem matVec_bell_prepared_basisAmp :
     simp +decide [QMat.matVec, H_on_0, CNOT_0_1, QMat.applySingle, QMat.cnotMatrix,
       QMat.basisMapMatrix, QMat.flipBit, QMat.basisAmp, bellAmp, ket00, ket10, ket11,
       basis2, Gate.H_apply, Matrix.piKronecker, Matrix.one_apply, qindex_two_univ,
-      QIndex.boolBit, boolBit]
+      QIndex.boolBit]
 
 private theorem pureDensity_bellAmp :
     QMat.pureDensity bellAmp =
@@ -496,7 +481,7 @@ theorem remote_collapse_total_effect (ρ : QMat 2) :
         QMat.expect proj11 (measured (0 : Fin 2) true (prepared H_on_0 CNOT_0_1 ρ)) =
       QMat.expect (proj00 + proj10) ρ := by
   simp +decide [prepared, H_on_0, CNOT_0_1, proj00, proj10, proj11, projBasis,
-    QMat.expect, QMat.evolve, measured, QMat.measProjector, QMat.applySingle,
+    QMat.expect, QMat.evolve, QMat.measured, QMat.measProjector, QMat.applySingle,
     QMat.cnotMatrix, QMat.basisMapMatrix, QMat.flipBit, QMat.bitAt, ket10, Gate.H_apply,
     Matrix.mul_apply, Matrix.trace, Matrix.diag_apply, Matrix.one_apply, Matrix.piKronecker,
     qindex_two_univ]

@@ -7,11 +7,10 @@ import Mathlib.Data.Matrix.Reflection
 import Mathlib.Tactic
 
 /-!
-# Experimental Matrix Computation Simprocs
+# Matrix Computation Simprocs
 
-This file contains opt-in simprocs for concrete `Fin`-indexed matrix computations.
-They use mathlib's reflected `Matrix.mulVecᵣ` and `Matrix.mulᵣ` definitions to turn
-matrix-vector and matrix-matrix products into concrete vector/matrix literals.
+This file contains a few simprocs. These are experimental and probably should be improved.
+The goal is to PR them at some point.
 -/
 
 namespace QLean
@@ -128,10 +127,6 @@ simproc matrixVecMulReflect ((Matrix.mulVecᵣ _ _) _) := fun e => do
 
 /--
 Compute a concrete `Fin`-indexed matrix product.
-
-This rewrites `A * B` to the eta-expanded literal produced by `Matrix.mulᵣ`.
-Use it with `simp only [matrixMul, matrixMulReflect]`, often followed by `rfl` or scalar
-simplification.
 -/
 simproc_decl matrixMul
     ((_ : Matrix (Fin _) (Fin _) _) * (_ : Matrix (Fin _) (Fin _) _)) := fun e => do
@@ -166,11 +161,6 @@ simproc_decl matrixMul
 
 /--
 Expand a matrix product over any finite middle index type.
-
-Unlike `matrixMul`, this does not try to build a concrete matrix literal, so it works for
-non-`Fin` finite index types. It rewrites `A * B` to the function
-`fun i j => ∑ k, A i k * B k j`, after checking that the product uses the canonical matrix
-multiplication instance.
 -/
 simproc_decl matrixMulApply (HMul.hMul _ _) := fun e => do
   match_expr e with
@@ -242,7 +232,11 @@ simproc matrixMulReflect ((Matrix.mulᵣ _ _) _ _) := fun e => do
       return .continue <| some { expr := out }
   | _ => return .continue
 
-/-! ## Tests -/
+/-! ## Documentation examples
+
+These examples intentionally live with the experimental simprocs as executable documentation for
+the supported concrete matrix shapes.
+-/
 
 example :
     Matrix.mulVec !![(1 : ℤ), 2; 3, 4] ![5, 6] =

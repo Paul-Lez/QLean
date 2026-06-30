@@ -9,9 +9,6 @@ import QLean.Tactic.MatrixCompute
 
 /-!
 # Standard Finite-Dimensional Gates
-
-This file contains the small matrix gates used throughout the examples. Full-register
-embeddings and basis-indexed matrix constructions live in `Gates/FullRegister.lean`.
 -/
 
 namespace QLean
@@ -96,12 +93,9 @@ def CNOT : TwoQubit.Op :=
 /-! ## Gate facts -/
 
 theorem X_unitary : Operator.IsUnitary X := by
+  unfold Operator.IsUnitary Gate.X
   ext i j
-  fin_cases i <;> fin_cases j <;> norm_num [Gate.X]
-  · norm_num [Matrix.mul_apply, dotProduct]
-  · norm_num [Matrix.mul_apply, Fin.sum_univ_succ]
-  · norm_num [Matrix.mul_apply, Fin.sum_univ_succ]
-  · norm_num [Matrix.mul_apply]
+  fin_cases i <;> fin_cases j <;> norm_num [Matrix.mul_apply, Fin.sum_univ_succ]
 
 theorem Y_unitary : Operator.IsUnitary Y := by
   unfold Operator.IsUnitary Y
@@ -109,12 +103,9 @@ theorem Y_unitary : Operator.IsUnitary Y := by
   fin_cases i <;> fin_cases j <;> norm_num [Matrix.mul_apply, Complex.ext_iff]
 
 theorem Z_unitary : Operator.IsUnitary Z := by
+  unfold Operator.IsUnitary Gate.Z
   ext i j
-  fin_cases i <;> fin_cases j <;> norm_num [Gate.Z]
-  · norm_num [Matrix.mul_apply]
-  · norm_num [Matrix.mul_apply, Fin.sum_univ_succ]
-  · norm_num [Matrix.mul_apply]
-  · norm_num [Matrix.mul_apply]
+  fin_cases i <;> fin_cases j <;> norm_num [Matrix.mul_apply, Fin.sum_univ_succ]
 
 theorem H_unitary : Operator.IsUnitary H := by
   have h := congr_arg (Matrix.reindexAlgEquiv ℂ ℂ singleQubitIndexEquiv)
@@ -122,20 +113,17 @@ theorem H_unitary : Operator.IsUnitary H := by
   simpa [Operator.IsUnitary, H, Matrix.conjTranspose_reindex] using h
 
 theorem S_unitary : Operator.IsUnitary S := by
+  unfold Operator.IsUnitary Gate.S
   ext i j
-  fin_cases i <;> fin_cases j <;> norm_num [Gate.S]
-  · norm_num [Matrix.mul_apply, Complex.ext_iff]
-  · norm_num [Matrix.mul_apply, Complex.ext_iff]
-  · norm_num [Matrix.mul_apply, Complex.ext_iff]
-  · norm_num [Matrix.mul_apply, Complex.ext_iff]
+  fin_cases i <;> fin_cases j <;>
+    norm_num [Matrix.mul_apply, Complex.ext_iff, Fin.sum_univ_succ]
 
 private theorem phase_exp_unit (θ : ℝ) :
     (starRingEnd ℂ) (Complex.exp (Complex.I * (θ : ℂ))) *
         Complex.exp (Complex.I * (θ : ℂ)) = 1 := by
   change star (Complex.exp (Complex.I * (θ : ℂ))) *
       Complex.exp (Complex.I * (θ : ℂ)) = 1
-  rw [Complex.star_def]
-  rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
+  rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
     Complex.norm_exp_I_mul_ofReal]
   norm_num
 
@@ -211,24 +199,6 @@ theorem X_ket1 :
   fin_cases i <;> norm_num [Complex.ext_iff]
 
 end Gate
-
-namespace QMat
-
-/-! ## Embedded named one-qubit gates -/
-
-/-- Hadamard embedded on one target qubit of an `n`-qubit register. -/
-def H (n : ℕ) (q : Fin n) : QMat n :=
-  QMat.applySingle q Gate.H
-
-/-- Pauli-X embedded on one target qubit of an `n`-qubit register. -/
-def X (n : ℕ) (q : Fin n) : QMat n :=
-  QMat.applySingle q Gate.X
-
-/-- Pauli-Z embedded on one target qubit of an `n`-qubit register. -/
-def Z (n : ℕ) (q : Fin n) : QMat n :=
-  QMat.applySingle q Gate.Z
-
-end QMat
 
 end
 

@@ -36,9 +36,9 @@ private theorem walsh_single_factor_eq {n : ℕ} (v z : Q[n]) (i : Fin n) :
 private theorem walsh_product_eq_bitDotMod2 {n : ℕ} (v z : Q[n]) :
     (∏ i : Fin n, (-1 : ℂ) ^ (if v i = 1 then (z i).val else 0)) =
       (-1 : ℂ) ^ (QIndex.bitDotMod2 z v) := by
-  rw [Finset.prod_congr rfl fun i _ => walsh_single_factor_eq v z i]
-  rw [Finset.prod_pow_eq_pow_sum]
-  rw [← Nat.mod_add_div (∑ i, QIndex.bitVal (z i) * QIndex.bitVal (v i)) 2]
+  rw [Finset.prod_congr rfl fun i _ => walsh_single_factor_eq v z i,
+    Finset.prod_pow_eq_pow_sum,
+    ← Nat.mod_add_div (∑ i, QIndex.bitVal (z i) * QIndex.bitVal (v i)) 2]
   norm_num [pow_add, pow_mul, Nat.mul_mod, Nat.pow_mod]
   rw [Finset.sum_eq_multiset_sum]
   erw [Multiset.map_coe]
@@ -160,8 +160,8 @@ private theorem bitDotMod2_add_xor_mod {n : ℕ} (z x y : Q[n]) :
     QIndex.bitDotMod2 z x + QIndex.bitDotMod2 z y ≡
       QIndex.bitDotMod2 z (qindexXor x y) [MOD 2] := by
   unfold QIndex.bitDotMod2
-  rw [← ZMod.natCast_eq_natCast_iff]
-  rw [Nat.cast_add, ZMod.natCast_mod, ZMod.natCast_mod, ZMod.natCast_mod]
+  rw [← ZMod.natCast_eq_natCast_iff, Nat.cast_add, ZMod.natCast_mod, ZMod.natCast_mod,
+    ZMod.natCast_mod]
   simpa [qindexXor, nat_foldl_cast_zmod] using
     bitDot_foldl_xor_zmod_aux z x y (List.finRange n) 0 0 0 (by simp)
 

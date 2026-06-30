@@ -8,10 +8,6 @@ import QLean.Syntax.Gates
 
 /-!
 # Reusable Execution Properties
-
-This file contains generic semantic infrastructure for fixed-register `QProg` programs:
-finite-support execution traces, branch-label predicates, branchwise positivity, a lightweight
-classical-quantum state wrapper, and structural trace/positivity preservation lemmas.
 -/
 
 namespace QLean
@@ -76,9 +72,8 @@ theorem execTrace_bind_pureBranch_map {n : ℕ} {α β : Type}
             (fun a ρ => QProg.Exec.pureBranch (f a) ρ)) =
         execTrace (QProg.Exec.pureBranch a ρ + μ)
       rw [QProg.Exec.bind_add (QProg.Exec.pureBranch a ρ) μ
-        (fun a ρ => QProg.Exec.pureBranch (f a) ρ) hzero hadd]
-      rw [execTrace_add, execTrace_add]
-      rw [ih]
+        (fun a ρ => QProg.Exec.pureBranch (f a) ρ) hzero hadd,
+        execTrace_add, execTrace_add, ih]
       simp [execTrace, QProg.Exec.bind, QProg.Exec.pureBranch]
 
 /-- Trace preservation for a bind whose continuation preserves branch trace. -/
@@ -95,10 +90,9 @@ theorem execTrace_bind_of_trace {n : ℕ} {α β : Type}
   | single_add a ρ μ ha hρ ih =>
       change execTrace (QProg.Exec.bind (QProg.Exec.pureBranch a ρ + μ) K) =
         execTrace (QProg.Exec.pureBranch a ρ + μ)
-      rw [QProg.Exec.bind_add (QProg.Exec.pureBranch a ρ) μ K hzero hadd]
-      rw [execTrace_add, execTrace_add]
-      rw [ih]
-      rw [QProg.Exec.bind_pureBranch_of_zero K hzero a ρ]
+      rw [QProg.Exec.bind_add (QProg.Exec.pureBranch a ρ) μ K hzero hadd,
+        execTrace_add, execTrace_add, ih,
+        QProg.Exec.bind_pureBranch_of_zero K hzero a ρ]
       simp [htrace]
 
 /-- Branchwise positivity of a finite-support classical-quantum execution state. -/
@@ -120,9 +114,7 @@ theorem execLabelForall_add {n : ℕ} {α : Type} {μ ν : QProg.Exec n α}
   intro a ha
   rw [Finsupp.mem_support_iff] at ha
   by_cases hμa : μ a = 0
-  · have hνa : ν a ≠ 0 := by
-      intro hνa
-      exact ha (by simp [Pi.add_apply, hμa, hνa])
+  · have hνa : ν a ≠ 0 := fun hνa => ha (by simp [Pi.add_apply, hμa, hνa])
     exact hν a (by simpa [Finsupp.mem_support_iff] using hνa)
   · exact hμ a (by simpa [Finsupp.mem_support_iff] using hμa)
 
@@ -220,9 +212,7 @@ theorem execPos_add {n : ℕ} {α : Type} {μ ν : QProg.Exec n α}
   intro a ha
   rw [Finsupp.mem_support_iff] at ha
   by_cases hμa : μ a = 0
-  · have hνa : ν a ≠ 0 := by
-      intro hνa
-      exact ha (by simp [Pi.add_apply, hμa, hνa])
+  · have hνa : ν a ≠ 0 := fun hνa => ha (by simp [Pi.add_apply, hμa, hνa])
     have hνpos := hν a (by simpa [Finsupp.mem_support_iff] using hνa)
     simpa [Pi.add_apply, hμa] using hνpos
   · by_cases hνa : ν a = 0
@@ -353,7 +343,7 @@ theorem tracePreserving_applyUnitary {σ : Type} {n : ℕ}
     TracePreserving (QProg.applyUnitary (σ := σ) U hU) := by
   intro s ρ
   rw [QProg.denote_applyUnitary]
-  simp [QProg.denotePrim, QProg.Exec.evolve, QMat.trace_evolve_of_unitary U hU]
+  simp [QProg.denotePrim, QMat.trace_evolve_of_unitary U hU]
 
 theorem tracePreserving_meas {σ : Type} {n : ℕ} (q : Fin n) :
     TracePreserving (QProg.meas (σ := σ) q) := by
@@ -428,7 +418,7 @@ theorem positivityPreserving_applyUnitary {σ : Type} {n : ℕ}
     PositivityPreserving (QProg.applyUnitary (σ := σ) U hU) := by
   intro s ρ hρ
   rw [QProg.denote_applyUnitary]
-  change ExecPos (QProg.Exec.pureBranch (s, ()) (QProg.Exec.evolve U ρ))
+  change ExecPos (QProg.Exec.pureBranch (s, ()) (QMat.evolve U ρ))
   exact execPos_pureBranch (s, ()) (QMat.pos_evolve_of_unitary U hU hρ)
 
 theorem positivityPreserving_meas {σ : Type} {n : ℕ} (q : Fin n) :

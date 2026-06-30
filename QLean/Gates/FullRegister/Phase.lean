@@ -19,8 +19,7 @@ namespace QMat
 
 private theorem phase_exp_star_mul (θ : ℝ) :
     star (Complex.exp (Complex.I * (θ : ℂ))) * Complex.exp (Complex.I * (θ : ℂ)) = 1 := by
-  rw [Complex.star_def]
-  rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
+  rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
     Complex.norm_exp_I_mul_ofReal]
   norm_num
 
@@ -33,7 +32,10 @@ private theorem bool_phase_unit (b : Bool) :
       (if b then (-1 : ℂ) else 1) * star (if b then (-1 : ℂ) else 1) = 1 := by
   cases b <;> norm_num
 
-/-- Controlled phase gate: multiply `|11>` on `(control,target)` by `exp(i*theta)`. -/
+/--
+Controlled phase gate: multiply `|11>` on `(control,target)` by `exp(i*theta)`.
+If `control = target`, this intentionally degenerates to a one-qubit phase on `|1>`.
+-/
 def controlledPhaseMatrix {n : ℕ} (control target : Fin n) (θ : ℝ) : QMat n :=
   Matrix.diagonal fun x =>
     if x control = (1 : Fin 2) ∧ x target = (1 : Fin 2) then

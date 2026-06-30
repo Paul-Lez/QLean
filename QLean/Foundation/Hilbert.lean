@@ -9,13 +9,7 @@ import Mathlib.LinearAlgebra.Matrix.Kronecker
 import Mathlib.LinearAlgebra.UnitaryGroup
 
 /-!
-# Quantum Hilbert Space Foundations
-
-This file establishes the mathematical foundations for quantum formal verification:
-
-* **`QState n`**: The type of quantum state vectors in an `n`-dimensional Hilbert space over `ℂ`,
-  represented as `EuclideanSpace ℂ (Fin n)`.
-* **`Operator n`**: Linear operators on the Hilbert space, represented as `n × n` complex matrices.
+# Hilbert Space Foundations
 -/
 
 namespace QLean
@@ -51,14 +45,10 @@ notation "⟪" ψ "|" φ "⟫" => QState.inner' ψ φ
 def IsNormalized {n : ℕ} (ψ : QState n) : Prop :=
   ⟪ψ|ψ⟫ = 1
 
-/-- Expand the inner product of finite Euclidean-space states as a sum. -/
-theorem inner'_eq_sum {n : ℕ} (ψ φ : QState n) : ⟪ψ|φ⟫ = ∑ i, φ i * star (ψ i) :=
-  rfl
-
 /-- Normalisation expanded as the usual sum of squared amplitudes. -/
 theorem isNormalized_iff_sum_mul_star {n : ℕ} {ψ : QState n} :
-    ψ.IsNormalized ↔ (∑ i, ψ i * star (ψ i)) = 1 := by
-  rw [IsNormalized, inner'_eq_sum]
+    ψ.IsNormalized ↔ (∑ i, ψ i * star (ψ i)) = 1 :=
+  Iff.rfl
 
 /-- The computational-basis states are normalised. -/
 theorem basis_normalized (n : ℕ) [NeZero n] (i : Fin n) :

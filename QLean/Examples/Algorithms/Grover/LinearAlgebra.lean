@@ -3,15 +3,11 @@ Copyright (c) 2026 Paul Lezeau. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Paul Lezeau
 -/
-import QLean.Examples.Algorithms.GroverWP.Verification
-import QLean.Examples.AuxiliaryResults.Canonical.Grover4
+import QLean.Examples.Algorithms.Grover.Verification
+import QLean.Examples.AuxiliaryResults.Grover4
 
 /-!
 # Grover Linear-Algebra Prerequisites
-
-This file contains the bulky matrix and real-analysis calculations used by the GroverWP headline
-theorems.  The algorithm-specific verification conditions and final Hoare triples live in
-`GroverWP.Grover4` and `GroverWP.General`.
 -/
 
 namespace QLean
@@ -84,11 +80,8 @@ private theorem scalar_unmarked_step {N M sN sM θ φ : ℝ}
   grind
 
 private theorem grover_target_step {n : ℕ} (hn : 1 < 2 ^ n) (φ : ℝ) :
-    (2 / (2 ^ n : ℝ)) *
-        (((2 ^ n : ℝ) - 1) * (Real.cos φ / Real.sqrt ((2 ^ n : ℝ) - 1)) -
-          Real.sin φ) +
-      Real.sin φ =
-        Real.sin (φ + 2 * groverAngle n) := by
+    (2 / (2 ^ n : ℝ)) * (((2 ^ n : ℝ) - 1) * (Real.cos φ / Real.sqrt ((2 ^ n : ℝ) - 1)) -  Real.sin φ) +
+      Real.sin φ = Real.sin (φ + 2 * groverAngle n) := by
   have hNpos : 0 < (2 ^ n : ℝ) := by positivity
   have hNgt1 : (1 : ℝ) < (2 ^ n : ℝ) := by exact_mod_cast hn
   have hMpos : 0 < (2 ^ n : ℝ) - 1 := by linarith
@@ -98,10 +91,8 @@ private theorem grover_target_step {n : ℕ} (hn : 1 < 2 ^ n) (φ : ℝ) :
     (cos_groverAngle_eq_sqrt_pred_div_sqrt hn)
 
 private theorem grover_unmarked_step {n : ℕ} (hn : 1 < 2 ^ n) (φ : ℝ) :
-    (2 / (2 ^ n : ℝ)) *
-        (((2 ^ n : ℝ) - 1) * (Real.cos φ / Real.sqrt ((2 ^ n : ℝ) - 1)) -
-          Real.sin φ) -
-      Real.cos φ / Real.sqrt ((2 ^ n : ℝ) - 1) =
+    (2 / (2 ^ n : ℝ)) * (((2 ^ n : ℝ) - 1) * (Real.cos φ / Real.sqrt ((2 ^ n : ℝ) - 1)) -
+      Real.sin φ) - Real.cos φ / Real.sqrt ((2 ^ n : ℝ) - 1) =
         Real.cos (φ + 2 * groverAngle n) / Real.sqrt ((2 ^ n : ℝ) - 1) := by
   have hNpos : 0 < (2 ^ n : ℝ) := by positivity
   have hNgt1 : (1 : ℝ) < (2 ^ n : ℝ) := by exact_mod_cast hn
@@ -140,16 +131,14 @@ private theorem matVec_hadamardLayer_basisAmp_zero (n : ℕ) :
     exact (hzero (Finset.mem_univ _)).elim
 
 private theorem analyticAmp_zero_eq_uniformAmp {n : ℕ} (hn : 1 < 2 ^ n)
-    (target : Q[n]) :
-    analyticAmp target 0 = uniformAmp n := by
+    (target : Q[n]) : analyticAmp target 0 = uniformAmp n := by
   ext x
   unfold analyticAmp uniformAmp groverPhase
   by_cases hx : x = target
   · simp [hx, sin_groverAngle_eq_inv_sqrt]
   · simp only [hx, if_false, CharP.cast_eq_zero, mul_zero, zero_add, one_mul, Complex.ofReal_sin,
       Complex.ofReal_div, Complex.ofReal_cos, one_div, Complex.ofReal_inv]
-    rw [← Complex.ofReal_cos]
-    rw [cos_groverAngle_eq_sqrt_pred_div_sqrt hn]
+    rw [← Complex.ofReal_cos, cos_groverAngle_eq_sqrt_pred_div_sqrt hn]
     have hNpos : 0 < Real.sqrt (2 ^ n : ℝ) :=
       Real.sqrt_pos_of_pos (by positivity)
     have hMpos : 0 < Real.sqrt ((2 ^ n : ℝ) - 1) := by
@@ -200,8 +189,7 @@ private theorem matVec_diffusion_apply {n : ℕ} (amp : Q[n] → ℂ) (x : Q[n])
           simp [Finset.mul_sum]
 
 private theorem sum_target_else {n : ℕ} (target : Q[n]) (a b : ℂ) :
-    (∑ x : Q[n], if x = target then a else b) =
-      a + ((2 ^ n - 1 : ℕ) : ℂ) * b := by
+    (∑ x : Q[n], if x = target then a else b) = a + ((2 ^ n - 1 : ℕ) : ℂ) * b := by
   have h := Finset.univ.sum_erase_add
     (fun x => if x = target then a else b) (Finset.mem_univ target)
   refine h.symm.trans ?_
@@ -300,8 +288,7 @@ private theorem matVec_groverIterate_analyticAmp {n : ℕ} {marked : Marked n}
     simpa [analyticAmp, hx, ← groverPhase_succ n k] using h
 
 private theorem matVec_groverIterate_pow_uniformAmp {n : ℕ} {marked : Marked n}
-    {target : Q[n]} (hmarked : ∀ x, marked x = true ↔ x = target)
-    (hn : 1 < 2 ^ n) (k : ℕ) :
+    {target : Q[n]} (hmarked : ∀ x, marked x = true ↔ x = target) (hn : 1 < 2 ^ n) (k : ℕ) :
     QMat.matVec ((QMat.groverIterate marked) ^ k) (uniformAmp n) =
       analyticAmp target k := by
   induction k with
@@ -317,7 +304,7 @@ theorem programEvolve_zeroDensity_eq_pure_analyticAmp {n : ℕ}
     (hmarked : ∀ x, marked x = true ↔ x = target) (hn : 1 < 2 ^ n) (k : ℕ) :
     programEvolve marked k (QMat.zeroDensity n) =
       QMat.pureDensity (analyticAmp target k) := by
-  unfold programEvolve QProg.Exec.evolve
+  unfold programEvolve
   rw [QMat.zeroDensity_eq_pureDensity_basisAmp_zero,
     QMat.evolve_pureDensity_eq_pureDensity,
     matVec_hadamardLayer_basisAmp_zero, QMat.evolve_pureDensity_eq_pureDensity,
@@ -334,8 +321,8 @@ theorem basisOfBits_injective {n : ℕ} :
     simp [QIndex.basisOfBits, QIndex.boolBit, hx, hy] at hi ⊢
 
 theorem exec_evolve_mul {n : ℕ} (U V ρ : QMat n) :
-    Exec.evolve (U * V) ρ = Exec.evolve U (Exec.evolve V ρ) := by
-  simp [Exec.evolve, QMat.evolve, star_mul, Matrix.mul_assoc]
+    QMat.evolve (U * V) ρ = QMat.evolve U (QMat.evolve V ρ) := by
+  simp [QMat.evolve, star_mul, Matrix.mul_assoc]
 
 end LinearAlgebra
 end GroverWP

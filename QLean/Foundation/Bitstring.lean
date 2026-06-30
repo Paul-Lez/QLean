@@ -14,9 +14,6 @@ import Mathlib.Tactic.NormNum
 
 /-!
 # Computational-Basis Bitstrings
-
-This file defines the reusable bitstring indices used for full-register matrices and
-register-splitting arithmetic. It deliberately contains no gate, syntax, WP, or algorithm code.
 -/
 
 namespace QLean
@@ -36,13 +33,17 @@ namespace QIndex
 /-- Finite Boolean strings, indexed little-endian by `Fin n`. -/
 abbrev BitVec (n : ℕ) := Fin n → Bool
 
+/-- Boolean exclusive-or. -/
+def bitXor : Bool → Bool → Bool :=
+  Bool.xor
+
 /-- Pointwise exclusive-or of Boolean strings. -/
 def bitVecXor {m : ℕ} (x y : BitVec m) : BitVec m :=
-  fun i => Bool.xor (x i) (y i)
+  fun i => bitXor (x i) (y i)
 
 /-- The mod-2 Boolean dot product: xor over all `a i && x i`. -/
 def bitDot {m : ℕ} (a x : BitVec m) : Bool :=
-  (List.finRange m).foldl (fun acc i => Bool.xor acc (a i && x i)) false
+  (List.finRange m).foldl (fun acc i => bitXor acc (a i && x i)) false
 
 /-- The all-zero Boolean string. -/
 def allZero {m : ℕ} : BitVec m :=
@@ -134,15 +135,15 @@ def bitDotMod2 {n : ℕ} (x y : Q[n]) : ℕ :=
 
 /-- The first-register index inside an `m + work` qubit register. -/
 def firstRegisterIndex (m work : ℕ) (i : Fin m) : Fin (m + work) :=
-  Fin.castAdd work i
+  ⟨i.val, Nat.lt_of_lt_of_le i.isLt (Nat.le_add_right m work)⟩
 
 /-- The second-register index inside an `m + work` qubit register. -/
 def secondRegisterIndex (m work : ℕ) (i : Fin work) : Fin (m + work) :=
-  Fin.natAdd m i
+  ⟨m + i.val, Nat.add_lt_add_left i.isLt m⟩
 
 /-- The final target qubit of an `m + 1` register. -/
 def targetIndex (m : ℕ) : Fin (m + 1) :=
-  Fin.last m
+  ⟨m, Nat.lt_succ_self m⟩
 
 /-- The first `m` bits of an `m + work` computational-basis index. -/
 def firstBits {m work : ℕ} (z : Q[m + work]) : BitVec m :=

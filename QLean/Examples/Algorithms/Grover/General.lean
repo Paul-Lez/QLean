@@ -3,15 +3,10 @@ Copyright (c) 2026 Paul Lezeau. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Paul Lezeau
 -/
-import QLean.Examples.Algorithms.GroverWP.LinearAlgebra
+import QLean.Examples.Algorithms.Grover.LinearAlgebra
 
 /-!
 # General Grover Search
-
-This file contains the main ingredients and headline theorem for the general one-solution
-GroverWP result.  The long matrix-amplitude calculation is imported from
-`GroverWP.LinearAlgebra`; everything specific to the general correctness statement is defined
-here.
 -/
 
 namespace QLean
@@ -68,8 +63,7 @@ def OneSolutionAmplitudeAmplification (n : ℕ) : Prop :=
 
 /-- With the corrected Grover iteration count, the final angle is near `pi / 2`. -/
 theorem optimalIterations_groverAngle_window (n : ℕ) :
-    Real.pi / 2 - groverAngle n ≤
-        (2 * (optimalIterations n : ℝ) + 1) * groverAngle n ∧
+    Real.pi / 2 - groverAngle n ≤ (2 * (optimalIterations n : ℝ) + 1) * groverAngle n ∧
       (2 * (optimalIterations n : ℝ) + 1) * groverAngle n ≤ Real.pi / 2 + groverAngle n := by
   have hθpos : 0 < groverAngle n := by
     unfold groverAngle LinearAlgebra.groverAngle
@@ -90,8 +84,7 @@ theorem optimalIterations_groverAngle_window (n : ℕ) :
   constructor <;> nlinarith
 
 private theorem cos_sq_le_sin_sq_of_window {θ x : ℝ} (hθ0 : 0 ≤ θ)
-    (hθle : θ ≤ Real.pi / 2) (hxlo : Real.pi / 2 - θ ≤ x)
-    (hxhi : x ≤ Real.pi / 2 + θ) :
+    (hθle : θ ≤ Real.pi / 2) (hxlo : Real.pi / 2 - θ ≤ x) (hxhi : x ≤ Real.pi / 2 + θ) :
     Real.cos θ ^ 2 ≤ Real.sin x ^ 2 := by
   let δ := Real.pi / 2 - x
   have hδ_abs : |δ| ≤ θ := by
@@ -112,8 +105,7 @@ private theorem cos_sq_le_sin_sq_of_window {θ x : ℝ} (hθ0 : 0 ≤ θ)
     constructor <;> linarith
   have hcosδ_nonneg : 0 ≤ Real.cos δ := Real.cos_nonneg_of_mem_Icc hδ_mem
   have hsq : Real.cos θ ^ 2 ≤ Real.cos δ ^ 2 := by
-    rw [sq_le_sq]
-    rw [abs_of_nonneg hcosθ_nonneg, abs_of_nonneg hcosδ_nonneg]
+    rw [sq_le_sq, abs_of_nonneg hcosθ_nonneg, abs_of_nonneg hcosδ_nonneg]
     exact hcos_le
   have hsin : Real.sin x = Real.cos δ := by
     dsimp [δ]
@@ -147,17 +139,11 @@ theorem cos_sq_groverAngle_eq_successLowerBound (n : ℕ) :
   unfold successLowerBound
   nlinarith
 
-/--
-Real-analysis reduction for the Grover theorem: once the matrix evolution has been identified
-with the usual amplitude formula, the corrected iteration count proves the lower bound.
--/
-theorem optimalGroverSuccessBound_of_amplitude_formula
-    {n : ℕ} {marked : Marked n}
+theorem optimalGroverSuccessBound_of_amplitude_formula {n : ℕ} {marked : Marked n}
     (hformula : GroverAmplitudeFormula marked (optimalIterations n)) :
     OptimalGroverSuccessBound marked := by
   unfold OptimalGroverSuccessBound
-  rw [hformula]
-  rw [← cos_sq_groverAngle_eq_successLowerBound n]
+  rw [hformula, ← cos_sq_groverAngle_eq_successLowerBound n]
   have hangle_nonneg : 0 ≤ groverAngle n := by
     unfold groverAngle LinearAlgebra.groverAngle
     rw [Real.arcsin_nonneg]
@@ -165,38 +151,28 @@ theorem optimalGroverSuccessBound_of_amplitude_formula
   exact cos_sq_le_sin_sq_of_window hangle_nonneg (Real.arcsin_le_pi_div_two _)
     (optimalIterations_groverAngle_window n).1 (optimalIterations_groverAngle_window n).2
 
-/--
-Discharge the one-solution theorem from the amplitude formula for the optimal iteration count.
-The remaining matrix obligation is exactly the supplied `hformula`.
--/
 theorem oneSolutionAmplitudeAmplification_of_amplitude_formula
-    (n : ℕ)
-    (hformula :
-      ∀ marked target,
-        UniqueMarked (n := n) marked target →
-          GroverAmplitudeFormula marked (optimalIterations n)) :
-    OneSolutionAmplitudeAmplification n := by
-  intro marked target hmarked _hn
-  exact optimalGroverSuccessBound_of_amplitude_formula (hformula marked target hmarked)
+    (n : ℕ) (hformula : ∀ marked target, UniqueMarked (n := n) marked target →
+      GroverAmplitudeFormula marked (optimalIterations n)) :
+    OneSolutionAmplitudeAmplification n :=
+  fun marked target hmarked _hn =>
+    optimalGroverSuccessBound_of_amplitude_formula (hformula marked target hmarked)
 
 /-- One marked basis state satisfies the Grover amplitude formula. -/
 theorem groverAmplitudeFormula_of_uniqueMarked {n : ℕ} {marked : Marked n}
-    {target : Q[n]} (hmarked : UniqueMarked marked target) (hn : 1 < 2 ^ n)
-    (k : ℕ) :
+    {target : Q[n]} (hmarked : UniqueMarked marked target) (hn : 1 < 2 ^ n) (k : ℕ) :
     GroverAmplitudeFormula marked k := by
   unfold GroverAmplitudeFormula successProbability
-  rw [LinearAlgebra.programEvolve_zeroDensity_eq_pure_analyticAmp hmarked hn k]
-  rw [LinearAlgebra.expect_successEffect_pureDensity_unique hmarked]
+  rw [LinearAlgebra.programEvolve_zeroDensity_eq_pure_analyticAmp hmarked hn k,
+    LinearAlgebra.expect_successEffect_pureDensity_unique hmarked]
   unfold LinearAlgebra.analyticAmp LinearAlgebra.groverPhase groverAngle LinearAlgebra.groverAngle
   simp only [↓reduceIte]
   rw [Complex.normSq_ofReal]
   ring
 
-/-- Proved one-solution amplitude-amplification theorem for the current GroverWP framework. -/
-theorem oneSolutionAmplitudeAmplification (n : ℕ) :
-    OneSolutionAmplitudeAmplification n := by
-  intro marked target hmarked hn
-  exact optimalGroverSuccessBound_of_amplitude_formula
+theorem oneSolutionAmplitudeAmplification (n : ℕ) : OneSolutionAmplitudeAmplification n :=
+  fun _ _ hmarked hn =>
+    optimalGroverSuccessBound_of_amplitude_formula
     (groverAmplitudeFormula_of_uniqueMarked hmarked hn (optimalIterations n))
 
 end GroverWP

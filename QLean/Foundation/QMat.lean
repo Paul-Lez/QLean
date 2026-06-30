@@ -9,11 +9,6 @@ import Mathlib.LinearAlgebra.Matrix.PosDef
 
 /-!
 # Full-Register Matrix Foundations
-
-This file contains the core matrix types and operations used by the syntax and proof layers:
-full-register density matrices, expectations, unitary evolution, measurement projectors, and
-small generic linear-algebra helpers. Reusable concrete gate constructions live under
-`QLean.Gates`.
 -/
 
 namespace QLean
@@ -23,10 +18,7 @@ noncomputable section
 open scoped Matrix ComplexOrder
 open Matrix Complex
 
-/-  Full-register state and matrix types -/
-
-/-- The quantum state of `n` qubits: a vector in `C^(2^n)`. -/
-abbrev QuantumState (n : ℕ) := QState (2 ^ n)
+/-  Full-register matrix types -/
 
 /-- Matrices acting on the full `n`-qubit computational basis. -/
 abbrev QMat (n : ℕ) := Matrix Q[n] Q[n] ℂ
@@ -73,21 +65,23 @@ theorem trace_evolve_of_unitary {n : ℕ} (U : QMat n) (hU : U.Unitary) (ρ : QM
     Matrix.trace (QMat.evolve U ρ) = Matrix.trace ρ := by
   rw [QMat.evolve, ← Matrix.trace_mul_comm, ← Matrix.mul_assoc, hU.1, Matrix.one_mul]
 
-set_option linter.flexible false in
 /-- Splitting one computational-basis measurement preserves total branch trace. -/
 theorem trace_measure_split {n : ℕ} (q : Fin n) (ρ : QMat n) :
     Matrix.trace (QMat.measProjector q false * ρ * QMat.measProjector q false) +
       Matrix.trace (QMat.measProjector q true * ρ * QMat.measProjector q true) =
     Matrix.trace ρ := by
-  simp [measProjector, Matrix.mul_assoc]
-  simp +decide [Matrix.trace, Matrix.mul_apply]
-  simp +decide [Finset.sum_ite, Finset.filter_eq, Finset.filter_and, bitAt]
+  simp only [measProjector, Matrix.mul_assoc]
+  simp +decide only [Matrix.trace, Matrix.diag_apply, Matrix.mul_apply, Matrix.of_apply,
+    mul_ite, mul_one, mul_zero, ite_mul, one_mul, zero_mul]
+  simp +decide only [bitAt, Fin.isValue, decide_eq_false_iff_not, Finset.sum_ite,
+    Finset.filter_and, not_and, Decidable.not_not, Finset.sum_const_zero, add_zero,
+    Finset.filter_eq, Finset.mem_univ, ↓reduceIte, Finset.filter_const, ite_not,
+    decide_eq_true_eq]
   rw [← Finset.sum_add_distrib]
   congr
   ext x
   split_ifs <;> simp_all +decide [Finset.filter_eq']
 
-set_option linter.flexible false in
 /-- Unitary evolution preserves positive semidefiniteness. -/
 theorem pos_evolve_of_unitary {n : ℕ} (U : QMat n) (_hU : U.Unitary) {ρ : QMat n}
     (hρ : ρ.PosSemidef) :
@@ -113,10 +107,6 @@ theorem pos_add {n : ℕ} {ρ₁ ρ₂ : QMat n}
     (hρ₁ : ρ₁.PosSemidef) (hρ₂ : ρ₂.PosSemidef) :
     (ρ₁ + ρ₂).PosSemidef :=
   hρ₁.add hρ₂
-
-/-- The identity full-register operator is unitary. -/
-theorem unitary_one {n : ℕ} : QMat.Unitary (1 : QMat n) :=
-  Submonoid.one_mem _
 
 /-- Products of full-register unitaries are unitary. -/
 theorem unitary_mul {n : ℕ} {U V : QMat n} (hU : U.Unitary) (hV : V.Unitary) :
@@ -147,8 +137,6 @@ theorem diagonal_unitary_of_unit_entries {n : ℕ} (f : Q[n] → ℂ)
       · simp [hx]
 
 end QMat
-
-/- Matrix constructions from basis maps -/
 
 namespace Matrix
 
